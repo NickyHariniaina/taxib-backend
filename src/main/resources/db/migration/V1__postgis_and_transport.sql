@@ -1,11 +1,9 @@
 -- TaxiB schema v1: PostGIS + GTFS-lite transport tables.
 --
--- PostGIS must live in the `extensions` schema (Supabase rule: never `public`,
--- else spatial_ref_sys leaks into the Data API). Enable it in the Supabase
--- dashboard first; this is a safety net for fresh databases.
+-- PostGIS installs into the default schema (public on Neon).
+-- Enable once per database if the dashboard didn't: CREATE EXTENSION IF NOT EXISTS postgis;
 
-CREATE SCHEMA IF NOT EXISTS extensions;
-CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 CREATE TABLE stops (
   id BIGSERIAL PRIMARY KEY,

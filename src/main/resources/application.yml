@@ -1,22 +1,24 @@
 # TaxiB backend configuration.
 #
-# SUPABASE_DB_URL must be set in the environment (never commit the password):
-#   Session pooler, port 5432 (Hibernate needs prepared statements,
-#   so the transaction pooler on 6543 does NOT work).
-#   jdbc:postgresql://aws-<region>.pooler.supabase.com:5432/postgres?user=postgres.<ref>&password=...&sslmode=require
+# Runtime env (export before boot, never commit values — see env.example.txt):
+#   SPRING_DATASOURCE_URL / SPRING_DATASOURCE_USERNAME / SPRING_DATASOURCE_PASSWORD
+#     App traffic. Bound automatically, nothing to declare here.
+#     Neon: pooled URL (host with "-pooler").
+#   SPRING_FLYWAY_URL / SPRING_FLYWAY_USER / SPRING_FLYWAY_PASSWORD (optional)
+#     Migrations. Falls back to the datasource URL when unset (local Docker case).
+#     Neon pooled connections can't run migrations (no session locks, no SET),
+#     so set these to the DIRECT url (same host without "-pooler").
 #
-# Supabase dashboard prerequisite (one click): enable the `postgis` extension
-# into the `extensions` schema. V1__ migration also tries CREATE EXTENSION.
+# Database prerequisite (one click / one statement): PostGIS extension enabled.
+# Neon: CREATE EXTENSION IF NOT EXISTS postgis; (public schema, the default).
 
 spring:
   datasource:
-    url: ${SUPABASE_DB_URL:}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
       connection-timeout: 10000
-      connection-init-sql: SET search_path TO "$user", public, extensions
   jpa:
     hibernate:
       ddl-auto: validate
