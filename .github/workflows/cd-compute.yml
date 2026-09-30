@@ -28,11 +28,23 @@ jobs:
 
     env:
       AWS_REGION: eu-west-3
-      SUPABASE_DB_URL: ${{
-              (github.event_name == 'pull_request' && github.base_ref == 'prod') && secrets.PROD_SUPABASE_DB_URL ||
-              (github.event_name == 'pull_request' && github.base_ref == 'preprod') && secrets.PREPROD_SUPABASE_DB_URL ||
-              (github.ref == 'refs/heads/prod') && secrets.PROD_SUPABASE_DB_URL ||
-              (github.ref == 'refs/heads/preprod') && secrets.PREPROD_SUPABASE_DB_URL
+      SPRING_DATASOURCE_URL: ${{
+              (github.event_name == 'pull_request' && github.base_ref == 'prod') && secrets.PROD_SPRING_DATASOURCE_URL ||
+              (github.event_name == 'pull_request' && github.base_ref == 'preprod') && secrets.PREPROD_SPRING_DATASOURCE_URL ||
+              (github.ref == 'refs/heads/prod') && secrets.PROD_SPRING_DATASOURCE_URL ||
+              (github.ref == 'refs/heads/preprod') && secrets.PREPROD_SPRING_DATASOURCE_URL
+              }}
+      SPRING_DATASOURCE_USERNAME: ${{
+              (github.event_name == 'pull_request' && github.base_ref == 'prod') && secrets.PROD_SPRING_DATASOURCE_USERNAME ||
+              (github.event_name == 'pull_request' && github.base_ref == 'preprod') && secrets.PREPROD_SPRING_DATASOURCE_USERNAME ||
+              (github.ref == 'refs/heads/prod') && secrets.PROD_SPRING_DATASOURCE_USERNAME ||
+              (github.ref == 'refs/heads/preprod') && secrets.PREPROD_SPRING_DATASOURCE_USERNAME
+              }}
+      SPRING_DATASOURCE_PASSWORD: ${{
+              (github.event_name == 'pull_request' && github.base_ref == 'prod') && secrets.PROD_SPRING_DATASOURCE_PASSWORD ||
+              (github.event_name == 'pull_request' && github.base_ref == 'preprod') && secrets.PREPROD_SPRING_DATASOURCE_PASSWORD ||
+              (github.ref == 'refs/heads/prod') && secrets.PROD_SPRING_DATASOURCE_PASSWORD ||
+              (github.ref == 'refs/heads/preprod') && secrets.PREPROD_SPRING_DATASOURCE_PASSWORD
               }}
 
     steps:

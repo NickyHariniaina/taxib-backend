@@ -1,6 +1,8 @@
 package com.nicky.hariniaina.endpoint.rest.controller.health;
 
 import com.nicky.hariniaina.PojaGenerated;
+import com.nicky.hariniaina.repository.DummyRepository;
+import com.nicky.hariniaina.repository.DummyUuidRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +13,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @AllArgsConstructor
 public class PingController {
+
+  DummyRepository dummyRepository;
+  DummyUuidRepository dummyUuidRepository;
 
   public static final ResponseEntity<String> OK = new ResponseEntity<>("OK", HttpStatus.OK);
   public static final ResponseEntity<String> KO =
