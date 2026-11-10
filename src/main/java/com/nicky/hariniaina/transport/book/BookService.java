@@ -27,7 +27,6 @@ public class BookService {
     this.stops = stops;
   }
 
-  /** All lines, refs sorted numerically (15 before 104). */
   public List<BookLineDto> listLines() {
     return lines.findAll().stream()
         .sorted(Comparator.comparing(BookLine::getRef, BookService::compareRefs))
@@ -35,7 +34,6 @@ public class BookService {
         .toList();
   }
 
-  /** Full line detail with ordered stops per direction. 404 when the ref is unknown. */
   public BookLineDetailDto getLineDetail(String ref) {
     BookLine line =
         lines
