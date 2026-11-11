@@ -1,6 +1,4 @@
 HELP.md
-env.txt
-.env
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
