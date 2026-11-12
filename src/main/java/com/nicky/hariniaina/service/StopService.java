@@ -25,18 +25,26 @@ public class StopService {
   private final NeighborhoodRepository neighborhoods;
 
   public List<StopResponse> findNearby(double lat, double lon, int radiusM, int limit) {
-    double radius = Math.min(Math.max(radiusM, 1), MAX_RADIUS_M);
     int max = Math.min(Math.max(limit, 1), MAX_LIMIT);
+
+    return findStopsWithinRadius(lat, lon, radiusM).stream()
+        .limit(max)
+        .map(s -> toResponse(s, lat, lon))
+        .toList();
+  }
+
+  /** Stops inside the radius, closest first. Entities, so callers can join on ids. */
+  public List<Stop> findStopsWithinRadius(double lat, double lon, int radiusM) {
+    double radius = Math.min(Math.max(radiusM, 1), MAX_RADIUS_M);
     double dLat = radius / METERS_PER_DEGREE;
     double dLng = radius / (METERS_PER_DEGREE * Math.max(Math.cos(Math.toRadians(lat)), 1e-6));
 
     return repository
         .findAllWithinBoundingBox(lat - dLat, lat + dLat, lon - dLng, lon + dLng)
         .stream()
-        .map(s -> toResponse(s, lat, lon))
-        .filter(r -> r.distanceM() <= radius)
-        .sorted(Comparator.comparingLong(StopResponse::distanceM))
-        .limit(max)
+        .filter(s -> distanceM(lat, lon, s.getLatitude(), s.getLongitude()) <= radius)
+        .sorted(
+            Comparator.comparingDouble(s -> distanceM(lat, lon, s.getLatitude(), s.getLongitude())))
         .toList();
   }
 
