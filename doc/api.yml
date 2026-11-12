@@ -268,6 +268,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
 
+  /api/stops/{id}/lines:
+    get:
+      tags: [stops, lines]
+      summary: List the bus lines serving a stop
+      description: >
+        Every line serving the stop. A stop is often served by several directions of the
+        same bus, so entries may share a number and differ by direction.
+      operationId: listStopLines
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Stop id.
+          schema:
+            type: integer
+            format: int64
+          example: 12
+      responses:
+        "200":
+          description: Lines serving the stop
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BusLine"
+        "404":
+          description: Unknown stop
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
   /ping:
     get:
       tags: [health]

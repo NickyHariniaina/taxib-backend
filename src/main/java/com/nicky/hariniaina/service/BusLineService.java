@@ -3,6 +3,7 @@ package com.nicky.hariniaina.service;
 import com.nicky.hariniaina.dto.BusLineResponse;
 import com.nicky.hariniaina.dto.StopResponse;
 import com.nicky.hariniaina.repository.BusLineRepository;
+import com.nicky.hariniaina.repository.StopRepository;
 import com.nicky.hariniaina.repository.model.BusLine;
 import com.nicky.hariniaina.repository.model.Stop;
 import java.util.Comparator;
@@ -11,8 +12,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class BusLineService {
   private static final int MAX_STOP_LIMIT = 500;
 
   private final BusLineRepository repository;
+  private final StopRepository stopRepository;
   private final StopService stopService;
 
   /**
@@ -49,6 +53,15 @@ public class BusLineService {
       lines = repository.findAllByOrderByNumberAscNameAsc();
     }
     return lines.stream().limit(max).map(line -> toResponse(line, null)).toList();
+  }
+
+  /** Lines serving one stop. */
+  @Transactional(readOnly = true)
+  public List<BusLineResponse> linesOfStop(long stopId) {
+    if (!stopRepository.existsById(stopId)) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown stop: " + stopId);
+    }
+    return repository.findAllByStopId(stopId).stream().map(line -> toResponse(line, null)).toList();
   }
 
   /** Stops served by a bus number, closest first when a point is given. */
