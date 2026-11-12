@@ -19,6 +19,8 @@ servers:
     description: Deployed API
 
 tags:
+  - name: lines
+    description: Bus lines and the stops they serve
   - name: neighborhoods
     description: Served quartiers and their stops
   - name: stops
@@ -72,6 +74,134 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+
+  /api/lines:
+    get:
+      tags: [lines]
+      summary: List the bus lines
+      description: >
+        The line catalogue: one entry per line and direction (e.g. "109 67Ha" / Aller).
+        With lat and lon, only the lines serving a stop within radius are returned,
+        closest line first.
+      operationId: listBusLines
+      parameters:
+        - name: number
+          in: query
+          required: false
+          description: Bus number.
+          schema:
+            type: string
+          example: "109"
+        - name: q
+          in: query
+          required: false
+          description: Substring match on number, label, origin or terminus.
+          schema:
+            type: string
+          example: Analakely
+        - name: lat
+          in: query
+          required: false
+          description: Latitude of the search point. Requires lon.
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+          example: -18.9
+        - name: lon
+          in: query
+          required: false
+          description: Longitude of the search point. Requires lat.
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+          example: 47.5
+        - name: radius
+          in: query
+          required: false
+          description: Search radius in meters, used with lat and lon.
+          schema:
+            type: integer
+            default: 500
+            minimum: 1
+            maximum: 5000
+          example: 1000
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of lines returned.
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: Bus lines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BusLine"
+
+  /api/lines/{number}/stops:
+    get:
+      tags: [lines]
+      summary: List the stops served by a bus line
+      description: >
+        Every stop served by the bus number. With lat and lon, each stop carries its
+        distance and the list is sorted by distance.
+      operationId: listBusLineStops
+      parameters:
+        - name: number
+          in: path
+          required: true
+          description: Bus number.
+          schema:
+            type: string
+          example: "109"
+        - name: lat
+          in: query
+          required: false
+          description: Latitude of the reference point.
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+          example: -18.9
+        - name: lon
+          in: query
+          required: false
+          description: Longitude of the reference point.
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+          example: 47.5
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of stops returned.
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 500
+      responses:
+        "200":
+          description: Stops served by the line
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Stop"
 
   /api/stops:
     get:
@@ -206,6 +336,40 @@ paths:
 
 components:
   schemas:
+    BusLine:
+      type: object
+      description: A bus line and a direction.
+      properties:
+        number:
+          type: string
+          example: "109"
+        name:
+          type: string
+          example: 109 67Ha
+        direction:
+          type: string
+          example: Aller
+        origin:
+          type: string
+          example: Ambohitromby
+        terminus:
+          type: string
+          example: Ny Havana
+        color:
+          type: string
+          example: "#091f46"
+        stopCount:
+          type: integer
+          example: 48
+        distanceM:
+          type: integer
+          format: int64
+          nullable: true
+          description: >
+            Distance in meters to the closest matching stop.
+            Null unless lat and lon were given.
+          example: 240
+
     Neighborhood:
       type: object
       properties:
