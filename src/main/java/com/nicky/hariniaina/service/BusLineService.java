@@ -8,9 +8,9 @@ import com.nicky.hariniaina.repository.model.BusLine;
 import com.nicky.hariniaina.repository.model.Stop;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -110,20 +110,25 @@ public class BusLineService {
       return List.of();
     }
 
-    return repository.findAllByStopIds(distances.keySet()).stream()
-        .map(line -> toResponse(line, nearestDistance(line, distances)))
-        .filter(line -> line.distanceM() != null)
+    // One query for the (line, stop) pairs: no lazy loading, no query per line.
+    Map<Long, BusLine> lines = new LinkedHashMap<>();
+    Map<Long, Long> nearest = new HashMap<>();
+    for (Object[] pair : repository.findLineStopPairs(distances.keySet())) {
+      var line = (BusLine) pair[0];
+      var stop = (Stop) pair[1];
+      var distance = distances.get(stop.getId());
+      if (distance == null) {
+        continue;
+      }
+      lines.putIfAbsent(line.getId(), line);
+      nearest.merge(line.getId(), distance, Math::min);
+    }
+
+    return lines.values().stream()
+        .map(line -> toResponse(line, nearest.get(line.getId())))
         .sorted(Comparator.comparingLong(BusLineResponse::distanceM))
         .limit(limit)
         .toList();
-  }
-
-  private static Long nearestDistance(BusLine line, Map<Long, Long> distances) {
-    return line.getStops().stream()
-        .map(s -> distances.get(s.getId()))
-        .filter(Objects::nonNull)
-        .min(Long::compareTo)
-        .orElse(null);
   }
 
   private static BusLineResponse toResponse(BusLine line, Long distanceM) {

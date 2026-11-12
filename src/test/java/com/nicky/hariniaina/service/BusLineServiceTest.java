@@ -87,8 +87,10 @@ class BusLineServiceTest {
   void shouldReturnLinesNearAPointWithDistance() {
     var close = stop(1L, "Ecole", -18.9001, 47.5001);
     var far = stop(2L, "Pharmacie", -18.895, 47.504);
+    var line = line(1L, "109", close, far);
     when(stopService.findStopsWithinRadius(-18.9, 47.5, 1_000)).thenReturn(List.of(close, far));
-    when(repository.findAllByStopIds(any())).thenReturn(List.of(line(1L, "109", close, far)));
+    when(repository.findLineStopPairs(any()))
+        .thenReturn(List.of(new Object[] {line, close}, new Object[] {line, far}));
 
     var result = service.list(null, null, -18.9, 47.5, 1_000, 50);
 
