@@ -1,0 +1,295 @@
+openapi: 3.0.3
+
+info:
+  title: TaxiB API
+  version: 1.0.0
+  description: |
+    Backend for TaxiB — taxi-be lines, stops and neighborhoods in Antananarivo.
+
+    Stop and neighborhood data is sourced from the [Iraka API v2](https://www.iraka.mg/docs/api)
+    (`/taxi-be`), mirrored into PostgreSQL (Neon). Coordinates are WGS84 (`lat`, `lon`).
+
+    - `neighborhood` is an Iraka *quartier* (fokontany). Names are exact and URL-encoded,
+      e.g. `67Ha%20Est`, `Mausol%C3%A9`.
+    - `distanceM` is the great-circle distance in meters from the requested point.
+
+servers:
+  - url: http://localhost:8080
+    description: Local (bootRun)
+  - url: /
+    description: Deployed API
+
+tags:
+  - name: neighborhoods
+    description: Served quartiers and their stops
+  - name: stops
+    description: Geolocated taxi-be stops
+  - name: health
+    description: Liveness probes
+
+paths:
+  /api/neighborhoods:
+    get:
+      tags: [neighborhoods]
+      summary: List every served neighborhood
+      description: All quartiers served by taxi-be, ordered by name.
+      operationId: listNeighborhoods
+      responses:
+        "200":
+          description: Neighborhoods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Neighborhood"
+
+  /api/neighborhoods/{name}/stops:
+    get:
+      tags: [neighborhoods, stops]
+      summary: List the stops of one neighborhood
+      description: Every stop of the given quartier, ordered by stop name.
+      operationId: listStopsByNeighborhood
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Exact neighborhood name, URL-encoded (`67Ha%20Est`).
+          schema:
+            type: string
+          example: Analakely
+      responses:
+        "200":
+          description: Stops of the neighborhood
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NeighborhoodStop"
+        "404":
+          description: Unknown neighborhood
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /api/stops:
+    get:
+      tags: [stops]
+      summary: List the stops near a point
+      description: >
+        Stops within `radius` meters of the given point, ordered by walking distance.
+        The radius filter is a true circle, not a bounding box.
+      operationId: listNearbyStops
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          description: Latitude of the search point, WGS84.
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+          example: -18.9
+        - name: lon
+          in: query
+          required: true
+          description: Longitude of the search point, WGS84.
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+          example: 47.5
+        - name: radius
+          in: query
+          required: false
+          description: Search radius in meters.
+          schema:
+            type: integer
+            default: 500
+            minimum: 1
+            maximum: 5000
+          example: 1000
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of stops returned.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+          example: 10
+      responses:
+        "200":
+          description: Nearby stops, closest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Stop"
+        "400":
+          description: Invalid parameter
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+  /ping:
+    get:
+      tags: [health]
+      summary: Liveness probe
+      operationId: ping
+      responses:
+        "200":
+          description: pong
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+
+  /health/db:
+    get:
+      tags: [health]
+      summary: Database probe
+      description: Returns 200 while the seeded `dummy` table is readable, 500 otherwise.
+      operationId: healthDb
+      responses:
+        "200":
+          description: Database reachable
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        "500":
+          description: Database unreachable or empty
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: KO
+
+  /health/email:
+    get:
+      tags: [health]
+      summary: Mail probe
+      description: Sends five test emails (subject only, cc, bcc, body, attachment) via SES.
+      operationId: healthEmail
+      parameters:
+        - name: to
+          in: query
+          required: true
+          description: Recipient address.
+          schema:
+            type: string
+            format: email
+          example: ferrissushi@gmail.com
+      responses:
+        "200":
+          description: Emails sent
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+        "400":
+          description: Invalid recipient
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+
+components:
+  schemas:
+    Neighborhood:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 12
+        name:
+          type: string
+          example: Analakely
+        latitude:
+          type: number
+          format: double
+          example: -18.905919
+        longitude:
+          type: number
+          format: double
+          example: 47.524538
+
+    NeighborhoodStop:
+      type: object
+      description: A stop belonging to the requested neighborhood.
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 12
+        name:
+          type: string
+          example: Pharmacie
+        lat:
+          type: number
+          format: double
+          example: -18.979973
+        lon:
+          type: number
+          format: double
+          example: 47.533031
+
+    Stop:
+      type: object
+      description: A taxi-be stop and its distance from the search point.
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 12
+        name:
+          type: string
+          example: Pharmacie
+        neighborhood:
+          type: string
+          example: Analakely
+        lat:
+          type: number
+          format: double
+          example: -18.979973
+        lon:
+          type: number
+          format: double
+          example: 47.533031
+        distanceM:
+          type: integer
+          format: int64
+          description: Great-circle distance in meters from the requested point.
+          example: 42
+
+    Problem:
+      type: object
+      description: RFC 7807 problem detail.
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+          example: Bad Request
+        status:
+          type: integer
+          example: 400
+        detail:
+          type: string
+          example: Failed to convert argument type
+        instance:
+          type: string
+          format: uri
