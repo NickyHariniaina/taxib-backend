@@ -23,8 +23,7 @@ public class StopService {
     double radius = Math.min(Math.max(radiusM, 1), MAX_RADIUS_M);
     int max = Math.min(Math.max(limit, 1), MAX_LIMIT);
     double dLat = radius / METERS_PER_DEGREE;
-    double dLng =
-        radius / (METERS_PER_DEGREE * Math.max(Math.cos(Math.toRadians(lat)), 1e-6));
+    double dLng = radius / (METERS_PER_DEGREE * Math.max(Math.cos(Math.toRadians(lat)), 1e-6));
 
     return repository
         .findAllWithinBoundingBox(lat - dLat, lat + dLat, lon - dLng, lon + dLng)
