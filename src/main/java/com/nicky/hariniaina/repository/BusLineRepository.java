@@ -27,8 +27,8 @@ public interface BusLineRepository extends JpaRepository<BusLine, Long> {
       """)
   List<BusLine> search(@Param("pattern") String pattern);
 
-  @Query("select l from BusLine l join l.stops s where s.id in :stopIds")
-  List<BusLine> findAllByStopIds(@Param("stopIds") Collection<Long> stopIds);
+  @Query("select l, s from BusLine l join l.stops s where s.id in :stopIds")
+  List<Object[]> findLineStopPairs(@Param("stopIds") Collection<Long> stopIds);
 
   @Query("select distinct s from BusLine l join l.stops s where l.number = :number order by s.name")
   List<Stop> findStopsByNumber(@Param("number") String number);
