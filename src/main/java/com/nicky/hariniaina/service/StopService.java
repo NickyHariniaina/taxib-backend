@@ -1,12 +1,16 @@
 package com.nicky.hariniaina.service;
 
+import com.nicky.hariniaina.dto.NeighborhoodStopResponse;
 import com.nicky.hariniaina.dto.StopResponse;
+import com.nicky.hariniaina.repository.NeighborhoodRepository;
 import com.nicky.hariniaina.repository.StopRepository;
 import com.nicky.hariniaina.repository.model.Stop;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +22,7 @@ public class StopService {
   private static final double METERS_PER_DEGREE = 111_320;
 
   private final StopRepository repository;
+  private final NeighborhoodRepository neighborhoods;
 
   public List<StopResponse> findNearby(double lat, double lon, int radiusM, int limit) {
     double radius = Math.min(Math.max(radiusM, 1), MAX_RADIUS_M);
@@ -32,6 +37,18 @@ public class StopService {
         .filter(r -> r.distanceM() <= radius)
         .sorted(Comparator.comparingLong(StopResponse::distanceM))
         .limit(max)
+        .toList();
+  }
+
+  public List<NeighborhoodStopResponse> findByNeighborhood(String name) {
+    if (neighborhoods.findByName(name).isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown neighborhood: " + name);
+    }
+    return repository.findAllByNeighborhoodOrderByNameAsc(name).stream()
+        .map(
+            s ->
+                new NeighborhoodStopResponse(
+                    s.getId(), s.getName(), s.getLatitude(), s.getLongitude()))
         .toList();
   }
 
