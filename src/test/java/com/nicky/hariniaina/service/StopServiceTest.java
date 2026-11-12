@@ -63,6 +63,18 @@ class StopServiceTest {
   }
 
   @Test
+  void shouldReturnStopsWithinRadiusClosestFirst() {
+    var far = stop(1L, "Pharmacie", -18.905, 47.504);
+    var close = stop(2L, "Ecole", -18.9001, 47.5001);
+    when(repository.findAllWithinBoundingBox(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
+        .thenReturn(List.of(far, close));
+
+    var result = service.findStopsWithinRadius(-18.9, 47.5, 1_000);
+
+    assertThat(result).extracting(Stop::getName).containsExactly("Ecole", "Pharmacie");
+  }
+
+  @Test
   void shouldApplyLimit() {
     when(repository.findAllWithinBoundingBox(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(stop(1L, "A", -18.9, 47.5), stop(2L, "B", -18.9, 47.5)));
