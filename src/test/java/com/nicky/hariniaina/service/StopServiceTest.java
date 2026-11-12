@@ -43,7 +43,7 @@ class StopServiceTest {
 
   @Test
   void shouldReturnClosestStopsFirst() {
-    var far = stop(1L, "Pharmacie", -18.905, 47.53);
+    var far = stop(1L, "Pharmacie", -18.905, 47.504);
     var close = stop(2L, "Ecole", -18.9001, 47.5001);
     when(repository.findAllWithinBoundingBox(anyDouble(), anyDouble(), anyDouble(), anyDouble()))
         .thenReturn(List.of(far, close));
