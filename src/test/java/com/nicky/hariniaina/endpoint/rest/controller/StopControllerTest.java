@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.nicky.hariniaina.dto.StopResponse;
+import com.nicky.hariniaina.service.BusLineService;
 import com.nicky.hariniaina.service.StopService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,11 +20,13 @@ class StopControllerTest {
 
   private final StopService service = mock(StopService.class);
 
+  private final BusLineService busLineService = mock(BusLineService.class);
+
   private MockMvc mockMvc;
 
   @BeforeEach
   void setUp() {
-    mockMvc = MockMvcBuilders.standaloneSetup(new StopController(service)).build();
+    mockMvc = MockMvcBuilders.standaloneSetup(new StopController(service, busLineService)).build();
   }
 
   @Test

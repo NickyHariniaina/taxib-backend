@@ -1,11 +1,13 @@
 package com.nicky.hariniaina.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.nicky.hariniaina.repository.BusLineRepository;
+import com.nicky.hariniaina.repository.StopRepository;
 import com.nicky.hariniaina.repository.model.BusLine;
 import com.nicky.hariniaina.repository.model.Stop;
 import java.time.Instant;
@@ -16,11 +18,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class BusLineServiceTest {
 
   @Mock private BusLineRepository repository;
+
+  @Mock private StopRepository stopRepository;
 
   @Mock private StopService stopService;
 
@@ -95,6 +101,26 @@ class BusLineServiceTest {
     when(stopService.findStopsWithinRadius(-18.9, 47.5, 500)).thenReturn(List.of());
 
     assertThat(service.list(null, null, -18.9, 47.5, 500, 50)).isEmpty();
+  }
+
+  @Test
+  void shouldReturnLinesOfStop() {
+    when(stopRepository.existsById(1L)).thenReturn(true);
+    when(repository.findAllByStopId(1L)).thenReturn(List.of(line(1L, "109")));
+
+    var result = service.linesOfStop(1L);
+
+    assertThat(result).extracting(l -> l.number()).containsExactly("109");
+    assertThat(result.get(0).distanceM()).isNull();
+  }
+
+  @Test
+  void shouldFailWhenStopIsUnknown() {
+    when(stopRepository.existsById(42L)).thenReturn(false);
+
+    assertThatThrownBy(() -> service.linesOfStop(42L))
+        .isInstanceOf(ResponseStatusException.class)
+        .hasFieldOrPropertyWithValue("statusCode", HttpStatus.NOT_FOUND);
   }
 
   @Test
