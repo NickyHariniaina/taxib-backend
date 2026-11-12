@@ -21,4 +21,6 @@ public interface StopRepository extends JpaRepository<Stop, Long> {
       @Param("maxLat") double maxLat,
       @Param("minLng") double minLng,
       @Param("maxLng") double maxLng);
+
+  List<Stop> findAllByNeighborhoodOrderByNameAsc(String neighborhood);
 }
