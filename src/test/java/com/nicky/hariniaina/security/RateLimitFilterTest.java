@@ -74,6 +74,13 @@ class RateLimitFilterTest {
   }
 
   @Test
+  void shouldNotBucketKeyedTrafficPerIp() throws Exception {
+    for (int i = 0; i < RateLimitFilter.IP_PER_MINUTE + 1; i++) {
+      assertThat(call(filter, keyed("1.2.3.4", 600)).getStatus()).isEqualTo(200);
+    }
+  }
+
+  @Test
   void shouldUseTheLastForwardedForEntry() throws Exception {
     for (int i = 0; i < RateLimitFilter.IP_PER_MINUTE; i++) {
       call(filter, anonymous("1.2.3.4"));

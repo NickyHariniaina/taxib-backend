@@ -36,8 +36,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class RateLimitFilter extends OncePerRequestFilter {
 
   static final int IP_PER_MINUTE = 60;
-  static final int KEY_PER_MINUTE = 600;
-  static final int KEY_PER_HOUR = 20_000;
   static final int GLOBAL_PER_MINUTE = 3_000;
   static final int MAX_TRACKED_CLIENTS = 10_000;
 
@@ -59,16 +57,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     evictStaleClients();
-    Bucket perIp = buckets.computeIfAbsent("ip:" + clientIp(request), id -> ipBucket());
-    if (!perIp.tryConsume(1)) {
-      reject(response, perIp);
-      return;
-    }
-
     Object key = request.getAttribute(ApiKeyFilter.KEY_ATTRIBUTE);
-    if (key instanceof ApiKey apiKey && !consumeKeyed(apiKey)) {
-      reject(response, buckets.get("key:" + apiKey.getId()));
-      return;
+    if (key instanceof ApiKey apiKey) {
+      if (!consumeKeyed(apiKey)) {
+        reject(response, buckets.get("key:" + apiKey.getId()));
+        return;
+      }
+    } else {
+      Bucket perIp = buckets.computeIfAbsent("ip:" + clientIp(request), id -> ipBucket());
+      if (!perIp.tryConsume(1)) {
+        reject(response, perIp);
+        return;
+      }
     }
 
     chain.doFilter(request, response);
