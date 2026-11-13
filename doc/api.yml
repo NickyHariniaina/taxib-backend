@@ -153,8 +153,12 @@ paths:
       tags: [lines]
       summary: List the stops served by a bus line
       description: >
-        Every stop served by the bus number. With lat and lon, each stop carries its
-        distance and the list is sorted by distance.
+        Every stop served by the bus number, one entry per direction and in route
+        order. `direction` (Aller, Retour, Circulaire) and `order` (0-based position
+        along that direction) keep the two sequences apart, so a client can slice the
+        ride between a boarding stop and an alighting stop. With lat and lon, each
+        stop also carries its distance from the point; the list still keeps route
+        order.
       operationId: listBusLineStops
       parameters:
         - name: number
@@ -187,7 +191,7 @@ paths:
         - name: limit
           in: query
           required: false
-          description: Maximum number of stops returned.
+          description: Maximum number of stops returned per direction.
           schema:
             type: integer
             default: 100
@@ -195,13 +199,13 @@ paths:
             maximum: 500
       responses:
         "200":
-          description: Stops served by the line
+          description: Stops served by the line, per direction, in route order
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Stop"
+                  $ref: "#/components/schemas/LineStop"
 
   /api/stops:
     get:
@@ -468,6 +472,48 @@ components:
           type: integer
           format: int64
           description: Great-circle distance in meters from the requested point.
+          example: 42
+
+    LineStop:
+      type: object
+      description: >
+        A stop of a line variant, at its position along that variant. Aller and
+        Retour are separate sequences: matching on `order` alone is ambiguous.
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 12
+        name:
+          type: string
+          example: Pharmacie
+        neighborhood:
+          type: string
+          example: Analakely
+        lat:
+          type: number
+          format: double
+          example: -18.979973
+        lon:
+          type: number
+          format: double
+          example: 47.533031
+        direction:
+          type: string
+          description: Direction of the variant this position belongs to.
+          enum: [Aller, Retour, Circulaire]
+          example: Aller
+        order:
+          type: integer
+          description: 0-based position of the stop along that direction.
+          example: 4
+        distanceM:
+          type: integer
+          format: int64
+          description: >
+            Great-circle distance in meters from the requested point. Null when no
+            point was given.
+          nullable: true
           example: 42
 
     Problem:

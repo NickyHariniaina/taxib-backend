@@ -1,7 +1,6 @@
 package com.nicky.hariniaina.repository;
 
 import com.nicky.hariniaina.repository.model.BusLine;
-import com.nicky.hariniaina.repository.model.Stop;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,6 +15,14 @@ public interface BusLineRepository extends JpaRepository<BusLine, Long> {
 
   List<BusLine> findByNumber(String number);
 
+  /**
+   * Variants of one bus number, in a stable order: Aller before Retour.
+   *
+   * <p>Each variant's stops come back in route order (see {@code @OrderColumn} on
+   * {@link BusLine#getStops()}), so callers can slice a ride between two stops.
+   */
+  List<BusLine> findByNumberOrderByDirectionAscNameAsc(String number);
+
   @Query(
       """
       select l from BusLine l
@@ -29,9 +36,6 @@ public interface BusLineRepository extends JpaRepository<BusLine, Long> {
 
   @Query("select l, s from BusLine l join l.stops s where s.id in :stopIds")
   List<Object[]> findLineStopPairs(@Param("stopIds") Collection<Long> stopIds);
-
-  @Query("select distinct s from BusLine l join l.stops s where l.number = :number order by s.name")
-  List<Stop> findStopsByNumber(@Param("number") String number);
 
   @Query("select l from BusLine l join l.stops s where s.id = :stopId order by l.number, l.name")
   List<BusLine> findAllByStopId(@Param("stopId") Long stopId);

@@ -1,11 +1,13 @@
 package com.nicky.hariniaina.service;
 
 import com.nicky.hariniaina.dto.BusLineResponse;
+import com.nicky.hariniaina.dto.LineStopResponse;
 import com.nicky.hariniaina.dto.StopResponse;
 import com.nicky.hariniaina.repository.BusLineRepository;
 import com.nicky.hariniaina.repository.StopRepository;
 import com.nicky.hariniaina.repository.model.BusLine;
 import com.nicky.hariniaina.repository.model.Stop;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -64,39 +66,37 @@ public class BusLineService {
     return repository.findAllByStopId(stopId).stream().map(line -> toResponse(line, null)).toList();
   }
 
-  /** Stops served by a bus number, closest first when a point is given. */
+  /** Stops served by a bus number, per variant and in route order. */
   @Transactional(readOnly = true)
-  public List<StopResponse> stopsOf(String number, Double lat, Double lon, int limit) {
+  public List<LineStopResponse> stopsOf(String number, Double lat, Double lon, int limit) {
     int max = Math.min(Math.max(limit, 1), MAX_STOP_LIMIT);
-    List<Stop> stops = repository.findStopsByNumber(number);
+    List<LineStopResponse> result = new ArrayList<>();
 
-    if (lat == null || lon == null) {
-      return stops.stream()
-          .limit(max)
-          .map(
-              s ->
-                  new StopResponse(
-                      s.getId(),
-                      s.getName(),
-                      s.getNeighborhood(),
-                      s.getLatitude(),
-                      s.getLongitude(),
-                      null))
-          .toList();
+    for (BusLine variant : repository.findByNumberOrderByDirectionAscNameAsc(number)) {
+      List<Stop> stops = variant.getStops();
+      for (int position = 0; position < Math.min(max, stops.size()); position++) {
+        Stop stop = stops.get(position);
+        result.add(
+            new LineStopResponse(
+                stop.getId(),
+                stop.getName(),
+                stop.getNeighborhood(),
+                stop.getLatitude(),
+                stop.getLongitude(),
+                variant.getDirection(),
+                position,
+                distanceOrNull(lat, lon, stop)));
+      }
     }
-    return stops.stream()
-        .map(
-            s ->
-                new StopResponse(
-                    s.getId(),
-                    s.getName(),
-                    s.getNeighborhood(),
-                    s.getLatitude(),
-                    s.getLongitude(),
-                    Math.round(StopService.distanceM(lat, lon, s.getLatitude(), s.getLongitude()))))
-        .sorted(Comparator.comparingLong(StopResponse::distanceM))
-        .limit(max)
-        .toList();
+    return result;
+  }
+
+  private static Long distanceOrNull(Double lat, Double lon, Stop stop) {
+    if (lat == null || lon == null) {
+      return null;
+    }
+    return Math.round(
+        StopService.distanceM(lat, lon, stop.getLatitude(), stop.getLongitude()));
   }
 
   private List<BusLineResponse> nearby(double lat, double lon, int radiusM, int limit) {

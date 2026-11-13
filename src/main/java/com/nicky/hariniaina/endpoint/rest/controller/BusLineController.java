@@ -1,7 +1,7 @@
 package com.nicky.hariniaina.endpoint.rest.controller;
 
 import com.nicky.hariniaina.dto.BusLineResponse;
-import com.nicky.hariniaina.dto.StopResponse;
+import com.nicky.hariniaina.dto.LineStopResponse;
 import com.nicky.hariniaina.service.BusLineService;
 import com.nicky.hariniaina.service.StopService;
 import jakarta.validation.constraints.Max;
@@ -32,7 +32,7 @@ public class BusLineController {
   }
 
   @GetMapping("/{number}/stops")
-  public List<StopResponse> stops(
+  public List<LineStopResponse> stops(
       @PathVariable String number,
       @RequestParam(required = false) @Min(-90) @Max(90) Double lat,
       @RequestParam(required = false) @Min(-180) @Max(180) Double lon,
