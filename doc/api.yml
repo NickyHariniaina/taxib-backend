@@ -11,9 +11,9 @@ info:
     - `neighborhood` is the district (quartier) a stop belongs to. Names are exact and URL-encoded,
       e.g. `67Ha%20Est`, `Mausol%C3%A9`.
     - `distanceM` is the great-circle distance in meters from the requested point.
-    - Every `/api/**` request needs an `X-Api-Key` header, and is rate limited per client IP
-      (60/min) and per key (600/min, 20 000/h). Reads are cacheable: `Cache-Control` is set on
-      successful GET responses.
+    - Every `/api/**` request needs an `X-Api-Key` header and is rate limited per key
+      (600/min, 20 000/h by default); anonymous calls are limited to 60/min per client IP.
+      Reads are cacheable: `Cache-Control` is set on successful GET responses.
 
 servers:
   - url: http://localhost:8080
