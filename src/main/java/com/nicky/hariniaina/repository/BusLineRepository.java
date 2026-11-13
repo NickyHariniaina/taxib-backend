@@ -18,8 +18,8 @@ public interface BusLineRepository extends JpaRepository<BusLine, Long> {
   /**
    * Variants of one bus number, in a stable order: Aller before Retour.
    *
-   * <p>Each variant's stops come back in route order (see {@code @OrderColumn} on
-   * {@link BusLine#getStops()}), so callers can slice a ride between two stops.
+   * <p>Each variant's stops come back in route order (see {@code @OrderColumn} on {@link
+   * BusLine#getStops()}), so callers can slice a ride between two stops.
    */
   List<BusLine> findByNumberOrderByDirectionAscNameAsc(String number);
 

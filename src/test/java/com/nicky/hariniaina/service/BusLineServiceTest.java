@@ -147,7 +147,8 @@ class BusLineServiceTest {
   @Test
   void shouldReturnStopsOfBusWithoutDistanceWhenNoPointIsGiven() {
     when(repository.findByNumberOrderByDirectionAscNameAsc("109"))
-        .thenReturn(List.of(variant(1L, "109", "Aller", "109 67Ha", stop(1L, "Ecole", -18.9, 47.5))));
+        .thenReturn(
+            List.of(variant(1L, "109", "Aller", "109 67Ha", stop(1L, "Ecole", -18.9, 47.5))));
 
     var result = service.stopsOf("109", null, null, 100);
 
@@ -172,7 +173,10 @@ class BusLineServiceTest {
     assertThat(result)
         .extracting(s -> s.direction() + ":" + s.order() + ":" + s.name())
         .containsExactly(
-            "Aller:0:Ambohitromby", "Aller:1:Ny Havana", "Retour:0:Ny Havana", "Retour:1:Ambohitromby");
+            "Aller:0:Ambohitromby",
+            "Aller:1:Ny Havana",
+            "Retour:0:Ny Havana",
+            "Retour:1:Ambohitromby");
   }
 
   @Test

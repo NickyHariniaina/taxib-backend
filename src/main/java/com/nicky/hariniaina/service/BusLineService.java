@@ -2,7 +2,6 @@ package com.nicky.hariniaina.service;
 
 import com.nicky.hariniaina.dto.BusLineResponse;
 import com.nicky.hariniaina.dto.LineStopResponse;
-import com.nicky.hariniaina.dto.StopResponse;
 import com.nicky.hariniaina.repository.BusLineRepository;
 import com.nicky.hariniaina.repository.StopRepository;
 import com.nicky.hariniaina.repository.model.BusLine;
@@ -95,8 +94,7 @@ public class BusLineService {
     if (lat == null || lon == null) {
       return null;
     }
-    return Math.round(
-        StopService.distanceM(lat, lon, stop.getLatitude(), stop.getLongitude()));
+    return Math.round(StopService.distanceM(lat, lon, stop.getLatitude(), stop.getLongitude()));
   }
 
   private List<BusLineResponse> nearby(double lat, double lon, int radiusM, int limit) {
