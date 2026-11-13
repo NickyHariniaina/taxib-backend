@@ -2,8 +2,8 @@ package com.nicky.hariniaina.repository.model;
 
 import jakarta.persistence.*;
 import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.*;
 
 @Entity
@@ -43,11 +43,13 @@ public class BusLine {
   @Column(name = "synced_at", nullable = false)
   private Instant syncedAt;
 
+  /** Stops in route order: index i is the i-th stop of this variant. */
   @ManyToMany
   @JoinTable(
       name = "bus_line_stops",
       joinColumns = @JoinColumn(name = "line_id"),
       inverseJoinColumns = @JoinColumn(name = "stop_id"))
+  @OrderColumn(name = "stop_order")
   @Builder.Default
-  private Set<Stop> stops = new LinkedHashSet<>();
+  private List<Stop> stops = new ArrayList<>();
 }

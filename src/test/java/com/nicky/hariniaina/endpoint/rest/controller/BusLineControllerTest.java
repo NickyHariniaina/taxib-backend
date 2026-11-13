@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.nicky.hariniaina.dto.BusLineResponse;
-import com.nicky.hariniaina.dto.StopResponse;
+import com.nicky.hariniaina.dto.LineStopResponse;
 import com.nicky.hariniaina.service.BusLineService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,14 +43,18 @@ class BusLineControllerTest {
   }
 
   @Test
-  void shouldReturnStopsOfBus() throws Exception {
+  void shouldReturnStopsOfBusInRouteOrder() throws Exception {
     when(service.stopsOf("109", null, null, 100))
-        .thenReturn(List.of(new StopResponse(1L, "Pharmacie", "Analakely", -18.9, 47.5, 12L)));
+        .thenReturn(
+            List.of(
+                new LineStopResponse(1L, "Pharmacie", "Analakely", -18.9, 47.5, "Aller", 0, 12L)));
 
     mockMvc
         .perform(get("/api/lines/{number}/stops", "109"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].name").value("Pharmacie"))
+        .andExpect(jsonPath("$[0].direction").value("Aller"))
+        .andExpect(jsonPath("$[0].order").value(0))
         .andExpect(jsonPath("$[0].distanceM").value(12));
   }
 }

@@ -11,7 +11,7 @@ import com.nicky.hariniaina.repository.StopRepository;
 import com.nicky.hariniaina.repository.model.BusLine;
 import com.nicky.hariniaina.repository.model.Stop;
 import java.time.Instant;
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,17 +43,22 @@ class BusLineServiceTest {
   }
 
   private static BusLine line(long id, String number, Stop... stops) {
+    return variant(id, number, "Aller", number + " 67Ha", stops);
+  }
+
+  private static BusLine variant(
+      long id, String number, String direction, String name, Stop... stops) {
     return BusLine.builder()
         .id(id)
         .number(number)
-        .name(number + " 67Ha")
-        .direction("Aller")
+        .name(name)
+        .direction(direction)
         .origin("Ambohitromby")
         .terminus("Ny Havana")
         .color("#091f46")
         .stopCount(stops.length)
         .syncedAt(Instant.now())
-        .stops(new LinkedHashSet<>(List.of(stops)))
+        .stops(new ArrayList<>(List.of(stops)))
         .build();
   }
 
@@ -129,21 +134,67 @@ class BusLineServiceTest {
   void shouldReturnStopsOfBusWithDistance() {
     var far = stop(1L, "Pharmacie", -18.895, 47.504);
     var close = stop(2L, "Ecole", -18.9001, 47.5001);
-    when(repository.findStopsByNumber("109")).thenReturn(List.of(far, close));
+    when(repository.findByNumberOrderByDirectionAscNameAsc("109"))
+        .thenReturn(List.of(variant(1L, "109", "Aller", "109 67Ha", far, close)));
 
     var result = service.stopsOf("109", -18.9, 47.5, 100);
 
-    assertThat(result).extracting(s -> s.name()).containsExactly("Ecole", "Pharmacie");
-    assertThat(result.get(0).distanceM()).isLessThan(result.get(1).distanceM());
+    // Route order, not distance order: the ride is read along the line.
+    assertThat(result).extracting(s -> s.name()).containsExactly("Pharmacie", "Ecole");
+    assertThat(result).extracting(s -> s.distanceM()).doesNotContainNull();
   }
 
   @Test
   void shouldReturnStopsOfBusWithoutDistanceWhenNoPointIsGiven() {
-    when(repository.findStopsByNumber("109")).thenReturn(List.of(stop(1L, "Ecole", -18.9, 47.5)));
+    when(repository.findByNumberOrderByDirectionAscNameAsc("109"))
+        .thenReturn(
+            List.of(variant(1L, "109", "Aller", "109 67Ha", stop(1L, "Ecole", -18.9, 47.5))));
 
     var result = service.stopsOf("109", null, null, 100);
 
     assertThat(result).hasSize(1);
     assertThat(result.get(0).distanceM()).isNull();
+  }
+
+  @Test
+  void shouldNumberEachDirectionFromZero() {
+    var allerA = stop(1L, "Ambohitromby", -18.88, 47.51);
+    var allerB = stop(2L, "Ny Havana", -18.90, 47.55);
+    var retourA = stop(2L, "Ny Havana", -18.90, 47.55);
+    var retourB = stop(1L, "Ambohitromby", -18.88, 47.51);
+    when(repository.findByNumberOrderByDirectionAscNameAsc("015"))
+        .thenReturn(
+            List.of(
+                variant(1L, "015", "Aller", "015 Be Kintana Mena", allerA, allerB),
+                variant(2L, "015", "Retour", "015 Be Kintana Mena", retourA, retourB)));
+
+    var result = service.stopsOf("015", null, null, 100);
+
+    assertThat(result)
+        .extracting(s -> s.direction() + ":" + s.order() + ":" + s.name())
+        .containsExactly(
+            "Aller:0:Ambohitromby",
+            "Aller:1:Ny Havana",
+            "Retour:0:Ny Havana",
+            "Retour:1:Ambohitromby");
+  }
+
+  @Test
+  void shouldCapStopsPerDirection() {
+    when(repository.findByNumberOrderByDirectionAscNameAsc("109"))
+        .thenReturn(
+            List.of(
+                variant(
+                    1L,
+                    "109",
+                    "Aller",
+                    "109 67Ha",
+                    stop(1L, "A", -18.90, 47.50),
+                    stop(2L, "B", -18.91, 47.51),
+                    stop(3L, "C", -18.92, 47.52))));
+
+    var result = service.stopsOf("109", null, null, 2);
+
+    assertThat(result).extracting(s -> s.name()).containsExactly("A", "B");
   }
 }
