@@ -54,12 +54,13 @@ MARGIN_DEG = 0.02  # grid padding around the district centres
 class DataClient:
     """Minimal HTTP client for the taxi-be data provider."""
 
-    def __init__(self, base_url: str, api_key: str, min_interval: float = 0.85):
+    def __init__(self, base_url: str, api_key: str, min_interval: float = 1.05):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.min_interval = min_interval
         self.calls = 0
         self.errors: list[str] = []
+        self.stopped = False
         self._last = 0.0
 
     def get(self, path: str, params: dict) -> dict:
@@ -84,7 +85,12 @@ class DataClient:
             except urllib.error.HTTPError as exc:
                 body = exc.read().decode("utf-8", "replace")
                 if exc.code == 429:
-                    time.sleep(int(exc.headers.get("Retry-After", "5")) + 1)
+                    retry = int(exc.headers.get("Retry-After", "5"))
+                    if retry > 120:
+                        self.stopped = True
+                        self.errors.append(f"{path} -> quota exhausted, retry in {retry}s")
+                        return {}
+                    time.sleep(retry + 1)
                     continue
                 self.errors.append(f"{path} {params} -> HTTP {exc.code}: {body[:120]}")
                 return {}
@@ -115,7 +121,7 @@ class DataClient:
 
 
 # Keys a provider route payload may nest its ordered stop list under, best first.
-_ROUTE_STOP_KEYS = ("fiantsonana", "stops", "parcours", "arrets")
+_ROUTE_STOP_KEYS = ("fijanonana", "fiantsonana", "stops", "parcours", "arrets")
 
 
 def _route_stops(body: dict) -> list[dict]:
@@ -192,14 +198,15 @@ def _line_record(v: dict) -> dict:
 
 
 def _route_stop_record(s: dict) -> dict | None:
-    """A route stop reduced to what the link inserts match on."""
+    """A route stop reduced to what the link inserts match on.
+
+    Route stops carry no identifier: only a name, a district and coordinates, which is
+    exactly what the link insert matches on.
+    """
     try:
-        rec = _stop_record(s)
-        return {
-            "name": rec["name"],
-            "latitude": rec["latitude"],
-            "longitude": rec["longitude"],
-        }
+        if "name" in s:
+            return {"name": s["name"], "latitude": s["latitude"], "longitude": s["longitude"]}
+        return {"name": s["anarana"], "latitude": s["lat"], "longitude": s["lng"]}
     except (KeyError, TypeError):
         return None
 
@@ -272,6 +279,8 @@ def sweep_routes(client: DataClient, variants: dict[str, dict]) -> list[dict]:
     missing: list[str] = []
 
     for variant in variants.values():
+        if client.stopped:
+            break
         stops = [_route_stop_record(s) for s in client.route(variant["id"])]
         stops = [s for s in stops if s]
         if not stops:
