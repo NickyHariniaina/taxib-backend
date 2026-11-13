@@ -70,31 +70,40 @@ public class BusLineService {
   public List<LineStopResponse> stopsOf(String number, Double lat, Double lon, int limit) {
     int max = Math.min(Math.max(limit, 1), MAX_STOP_LIMIT);
     List<LineStopResponse> result = new ArrayList<>();
+    String variant = null;
+    int position = 0;
 
-    for (BusLine variant : repository.findByNumberOrderByDirectionAscNameAsc(number)) {
-      List<Stop> stops = variant.getStops();
-      for (int position = 0; position < Math.min(max, stops.size()); position++) {
-        Stop stop = stops.get(position);
-        result.add(
-            new LineStopResponse(
-                stop.getId(),
-                stop.getName(),
-                stop.getNeighborhood(),
-                stop.getLatitude(),
-                stop.getLongitude(),
-                variant.getDirection(),
-                position,
-                distanceOrNull(lat, lon, stop)));
+    for (Object[] row : repository.findStopsInRouteOrder(number)) {
+      String direction = (String) row[5];
+      String key = direction + '\u0000' + row[6];
+      if (!key.equals(variant)) {
+        variant = key;
+        position = 0;
       }
+      if (position >= max) {
+        continue;
+      }
+      double stopLat = ((Number) row[3]).doubleValue();
+      double stopLon = ((Number) row[4]).doubleValue();
+      result.add(
+          new LineStopResponse(
+              ((Number) row[0]).longValue(),
+              (String) row[1],
+              (String) row[2],
+              stopLat,
+              stopLon,
+              direction,
+              position++,
+              distanceOrNull(lat, lon, stopLat, stopLon)));
     }
     return result;
   }
 
-  private static Long distanceOrNull(Double lat, Double lon, Stop stop) {
+  private static Long distanceOrNull(Double lat, Double lon, double stopLat, double stopLon) {
     if (lat == null || lon == null) {
       return null;
     }
-    return Math.round(StopService.distanceM(lat, lon, stop.getLatitude(), stop.getLongitude()));
+    return Math.round(StopService.distanceM(lat, lon, stopLat, stopLon));
   }
 
   private List<BusLineResponse> nearby(double lat, double lon, int radiusM, int limit) {

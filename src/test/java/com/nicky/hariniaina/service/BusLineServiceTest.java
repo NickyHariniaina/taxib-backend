@@ -42,6 +42,20 @@ class BusLineServiceTest {
         .build();
   }
 
+  /** One row of {@code findStopsInRouteOrder}: stop fields, variant fields, route order. */
+  private static Object[] stopRow(String direction, String variant, int order, Stop stop) {
+    return new Object[] {
+      stop.getId(),
+      stop.getName(),
+      stop.getNeighborhood(),
+      stop.getLatitude(),
+      stop.getLongitude(),
+      direction,
+      variant,
+      order
+    };
+  }
+
   private static BusLine line(long id, String number, Stop... stops) {
     return variant(id, number, "Aller", number + " 67Ha", stops);
   }
@@ -134,8 +148,9 @@ class BusLineServiceTest {
   void shouldReturnStopsOfBusWithDistance() {
     var far = stop(1L, "Pharmacie", -18.895, 47.504);
     var close = stop(2L, "Ecole", -18.9001, 47.5001);
-    when(repository.findByNumberOrderByDirectionAscNameAsc("109"))
-        .thenReturn(List.of(variant(1L, "109", "Aller", "109 67Ha", far, close)));
+    when(repository.findStopsInRouteOrder("109"))
+        .thenReturn(
+            List.of(stopRow("Aller", "109 67Ha", 0, far), stopRow("Aller", "109 67Ha", 1, close)));
 
     var result = service.stopsOf("109", -18.9, 47.5, 100);
 
@@ -146,9 +161,9 @@ class BusLineServiceTest {
 
   @Test
   void shouldReturnStopsOfBusWithoutDistanceWhenNoPointIsGiven() {
-    when(repository.findByNumberOrderByDirectionAscNameAsc("109"))
+    when(repository.findStopsInRouteOrder("109"))
         .thenReturn(
-            List.of(variant(1L, "109", "Aller", "109 67Ha", stop(1L, "Ecole", -18.9, 47.5))));
+            List.<Object[]>of(stopRow("Aller", "109 67Ha", 0, stop(1L, "Ecole", -18.9, 47.5))));
 
     var result = service.stopsOf("109", null, null, 100);
 
@@ -160,13 +175,13 @@ class BusLineServiceTest {
   void shouldNumberEachDirectionFromZero() {
     var allerA = stop(1L, "Ambohitromby", -18.88, 47.51);
     var allerB = stop(2L, "Ny Havana", -18.90, 47.55);
-    var retourA = stop(2L, "Ny Havana", -18.90, 47.55);
-    var retourB = stop(1L, "Ambohitromby", -18.88, 47.51);
-    when(repository.findByNumberOrderByDirectionAscNameAsc("015"))
+    when(repository.findStopsInRouteOrder("015"))
         .thenReturn(
             List.of(
-                variant(1L, "015", "Aller", "015 Be Kintana Mena", allerA, allerB),
-                variant(2L, "015", "Retour", "015 Be Kintana Mena", retourA, retourB)));
+                stopRow("Aller", "015 Be Kintana Mena", 0, allerA),
+                stopRow("Aller", "015 Be Kintana Mena", 1, allerB),
+                stopRow("Retour", "015 Be Kintana Mena", 0, allerB),
+                stopRow("Retour", "015 Be Kintana Mena", 1, allerA)));
 
     var result = service.stopsOf("015", null, null, 100);
 
@@ -181,20 +196,31 @@ class BusLineServiceTest {
 
   @Test
   void shouldCapStopsPerDirection() {
-    when(repository.findByNumberOrderByDirectionAscNameAsc("109"))
+    var a = stop(1L, "A", -18.90, 47.50);
+    var b = stop(2L, "B", -18.91, 47.51);
+    var c = stop(3L, "C", -18.92, 47.52);
+    when(repository.findStopsInRouteOrder("109"))
         .thenReturn(
             List.of(
-                variant(
-                    1L,
-                    "109",
-                    "Aller",
-                    "109 67Ha",
-                    stop(1L, "A", -18.90, 47.50),
-                    stop(2L, "B", -18.91, 47.51),
-                    stop(3L, "C", -18.92, 47.52))));
+                stopRow("Aller", "109 67Ha", 0, a),
+                stopRow("Aller", "109 67Ha", 1, b),
+                stopRow("Aller", "109 67Ha", 2, c)));
 
     var result = service.stopsOf("109", null, null, 2);
 
     assertThat(result).extracting(s -> s.name()).containsExactly("A", "B");
+  }
+
+  @Test
+  void shouldNumberAlphabeticalStopsWhenTheRouteOrderIsMissing() {
+    var a = stop(1L, "A", -18.90, 47.50);
+    var b = stop(2L, "B", -18.91, 47.51);
+    when(repository.findStopsInRouteOrder("109"))
+        .thenReturn(
+            List.of(stopRow("Aller", "109 67Ha", 0, a), stopRow("Aller", "109 67Ha", 0, b)));
+
+    var result = service.stopsOf("109", null, null, 100);
+
+    assertThat(result).extracting(s -> s.order()).containsExactly(0, 1);
   }
 }
